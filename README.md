@@ -1,6 +1,6 @@
 # MD5
 
-The MD5 algorithm is a widely used hash function producing a 128-bit hash value designed by Ronald Rivest in 1991 to replace MD4. The design is described in [RFC1321](https://www.ietf.org/rfc/rfc1321.txt).
+The MD5 algorithm is a widely used hash function producing a 128-bit hash value. It was designed by Ronald Rivest in 1991 to replace MD4 and is described in [RFC1321](https://www.ietf.org/rfc/rfc1321.txt).
 
 ## Getting Started
 

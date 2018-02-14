@@ -5,7 +5,40 @@
 
 #define SAFE_DELETE(x) do{\
     if(NULL != x){ free(x); x = NULL; }\
-}while(0);
+}while(0)
+
+#define F(X,Y,Z) ((X & Y) | (~(X) & Z))
+#define G(X,Y,Z) ((X & Z) | (Y & ~(Z)))
+#define H(X,Y,Z) (X ^ Y ^ Z)
+#define I(X,Y,Z) (Y ^ (X | ~(Z)))
+
+#define ROTATE_LEFT(x,n) do{\
+    ((x << n) | (x >> (32-n)));\
+}while(0)
+
+#define FF(a,b,c,d,x,t,s) do{\
+    a += F(b,c,d) + x + t;\
+    ROTATE_LEFT(a,s);\
+    a += b;\
+}while(0)
+
+#define GG(a,b,c,d,x,t,s) do{\
+    a += G(b,c,d) + x + t;\
+    ROTATE_LEFT(a,s);\
+    a += b;\
+}while(0)
+
+#define HH(a,b,c,d,x,t,s) do{\
+    a += H(b,c,d) + x + t;\
+    ROTATE_LEFT(a,s);\
+    a += b;\
+}while(0)
+
+#define II(a,b,c,d,x,t,s) do{\
+    a += I(b,c,d) + x + t;\
+    ROTATE_LEFT(a,s);\
+    a += b;\
+}while(0)
 
 const char gPlaintext[] = "Implement the message digest algorithm MD5 and test how random the output appears.\
 For example, test the percentage of 1 bits in the output, or test how many bits of output\
@@ -18,6 +51,8 @@ typedef struct
     uint8_t* data;
     uint64_t length;
 }buffer_t;
+
+int gMD5Registers[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476 };
 
 buffer_t* MD5Init(const uint8_t* xInputData)
 {

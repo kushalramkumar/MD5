@@ -96,18 +96,6 @@ void MD5_chartoint(uint32_t* dst, uint8_t* src)
     *dst = ((src[3] & 0xff) << 24) | ((src[2] & 0xff) << 16) | ((src[1] & 0xff) << 8) | (src[0] & 0xff);
 }
 
-void MD5_inttochar(uint8_t* dst, uint64_t* src)
-{
-    dst[7] = ((src[0] >> 56) & 0xff);
-    dst[6] = ((src[0] >> 48) & 0xff);
-    dst[5] = ((src[0] >> 40) & 0xff);
-    dst[4] = ((src[0] >> 32) & 0xff);
-    dst[3] = ((src[0] >> 24) & 0xff);
-    dst[2] = ((src[0] >> 16) & 0xff);
-    dst[1] = ((src[0] >> 8) & 0xff);
-    dst[0] = (src[0] & 0xff);
-}
-
 void MD5Transform(uint8_t* md, const uint8_t* xpPlaintext, uint32_t len)
 {
     uint32_t state[4];

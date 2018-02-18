@@ -44,13 +44,15 @@
     for (uint32_t k = 0; k < 16; k++) { printf("%02X", x[k]); } printf("\n"); \
 }while(0)
 
-const char gPlaintext[] = "Implement the message digest algorithm MD5 and test how random the output appears. \
+const char gPlaintext[] = "";
+
+const char gPlaintext2[] = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl";
+
+const char gPlaintext3[] = "Implement the message digest algorithm MD5 and test how random the output appears. \
 For example, test the percentage of 1 bits in the output, or test how many bits of output \
 change with minor changes in the input. Also, design various simplifications of the \
 message digest functions (such as reducing the number of rounds) and see how these \
 change things.";
-
-const char gPlaintext2[] = "";
 
 const uint8_t PADDING[64] = { 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
@@ -60,7 +62,6 @@ const uint8_t PADDING[64] = { 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 const uint8_t MD5REGISTERS[16] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
                                 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
 
-uint32_t gMD5Registers[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476 };
 uint32_t gLookupTable[64];
 
 void MD5CreateLookUpTable()
@@ -71,11 +72,6 @@ void MD5CreateLookUpTable()
     }
 }
 
-void MD5_inttochar(uint8_t* dst, uint32_t* src)
-{
-
-}
-
 void MD5_digesttostate(uint32_t* dst, uint8_t* src)
 {
     for (int i = 0; i < 4; i++)
@@ -84,9 +80,9 @@ void MD5_digesttostate(uint32_t* dst, uint8_t* src)
     }
 }
 
-void MD5_statetodigest(uint8_t* dst, uint32_t* src)
+void MD5_statetodigest(uint8_t* dst, uint32_t* src, uint32_t len)
 {
-    for (int i = 0, j = 0; i < 4; i++, j=i*4)
+    for (int i = 0, j = 0; j < len; i++, j=i*4)
     {
         dst[j + 3] = ((src[i] >> 24) & 0xff);
         dst[j + 2] = ((src[i] >> 16) & 0xff);
@@ -98,6 +94,18 @@ void MD5_statetodigest(uint8_t* dst, uint32_t* src)
 void MD5_chartoint(uint32_t* dst, uint8_t* src)
 {
     *dst = ((src[3] & 0xff) << 24) | ((src[2] & 0xff) << 16) | ((src[1] & 0xff) << 8) | (src[0] & 0xff);
+}
+
+void MD5_inttochar(uint8_t* dst, uint64_t* src)
+{
+    dst[7] = ((src[0] >> 56) & 0xff);
+    dst[6] = ((src[0] >> 48) & 0xff);
+    dst[5] = ((src[0] >> 40) & 0xff);
+    dst[4] = ((src[0] >> 32) & 0xff);
+    dst[3] = ((src[0] >> 24) & 0xff);
+    dst[2] = ((src[0] >> 16) & 0xff);
+    dst[1] = ((src[0] >> 8) & 0xff);
+    dst[0] = (src[0] & 0xff);
 }
 
 void MD5Transform(uint8_t* md, const uint8_t* xpPlaintext, uint32_t len)
@@ -188,39 +196,41 @@ void MD5Transform(uint8_t* md, const uint8_t* xpPlaintext, uint32_t len)
 
         state[0] += a; state[1] += b; state[2] += c; state[3] += d;
     }
-    MD5_statetodigest(md, state);
+    MD5_statetodigest(md, state, 16);
 }
 
 int main(int argc, char** argv)
 {
-    uint8_t md[16];
-    uint8_t* ms = gPlaintext2;
-    uint32_t bc = strlen(ms);
+    uint8_t digest[16];
+    uint8_t* messageString = gPlaintext3;
+    uint32_t unpaddedLength = strlen(messageString);
     MD5CreateLookUpTable();
+    
     /*Initialize message digest*/
-    memcpy(md, MD5REGISTERS, sizeof(MD5REGISTERS));
+    memcpy(digest, MD5REGISTERS, sizeof(MD5REGISTERS));
 
     /* MD5Transform full blocks of message */
-    MD5Transform(md, ms, bc / 64);
+    MD5Transform(digest, messageString, unpaddedLength / 64);
 
     /* MD5Transform remaining bits */
-    uint8_t ms0[128];
-    uint32_t mod = bc % 64;
-    memcpy(ms0, ms + (64 * (bc / 64)), mod);
-    printf("Remaining bits:%s\n", ms0);
+    /* Create the Pad */
+    uint8_t paddedString[128];
+    uint32_t mod = unpaddedLength % 64;
+    memcpy(paddedString, messageString + (64 * (unpaddedLength / 64)), mod);
 
     uint32_t nPadding = (mod > 64) ? (56 + (64 - mod)) : (56 - mod);
-    printf("bc:%d mod:%d nPadding:%d\n", bc, mod, nPadding);
-    memcpy(ms0 + mod, PADDING, nPadding);
-    mod += nPadding;
+    memcpy(paddedString + mod, PADDING, nPadding);
 
-    uint64_t len = strlen(ms);
-    memcpy(ms0 + mod, &len, sizeof(uint64_t));
-    mod += sizeof(uint64_t);
+    /* Append the length in *bits* */
+    uint64_t len = strlen(messageString) * 8;
+    uint8_t lenBuf[8];
+    MD5_statetodigest(lenBuf, &len, 8);
 
-    MD5Transform(md, ms0, mod/64);
-    printf("MD5[%s]:\n", ms);
-    PRINT_MD(md);
+    memcpy(paddedString + mod + nPadding, lenBuf, sizeof(uint64_t));
+
+    MD5Transform(digest, paddedString, (mod + nPadding + 8) / 64);
+    printf("MD5[%s]:\n", messageString);
+    PRINT_MD(digest);
     printf("\n");
 
     return 0;

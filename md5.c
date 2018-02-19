@@ -190,7 +190,15 @@ void MD5Transform(uint8_t* md, const uint8_t* xpPlaintext, uint32_t len)
 int main(int argc, char** argv)
 {
     uint8_t digest[16];
-    uint8_t* messageString = gPlaintext3;
+    uint8_t* messageString;
+    if (1 < argc)
+    {
+        messageString = argv[1];
+    }
+    else
+    {
+        messageString = gPlaintext;
+    }
     uint32_t unpaddedLength = strlen(messageString);
     MD5CreateLookUpTable();
     

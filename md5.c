@@ -187,6 +187,79 @@ void MD5Transform(uint8_t* md, const uint8_t* xpPlaintext, uint32_t len)
     MD5_statetodigest(md, state, 16);
 }
 
+uint32_t NumberOfOnes(uint8_t* xDigest, uint32_t xLength)
+{
+    uint32_t nOnes = 0;
+    for (int i = 0; i < xLength; i++)
+    {
+        uint8_t value = xDigest[i];
+        for (int j = 0; j < 8; j++)
+        {
+            nOnes += value & 1;
+            value >>= 1;
+        }
+    }
+    return nOnes;
+}
+
+/*
+ *  FREQUENCY TEST:
+ *  Simple test of the percentage of 1's in the message digest.
+ *  The expected nOnes ~ nZeroes, which means the percentage of 
+ *  1's ~ 50%. The range of values from 0.4 - 0.6 are accepted.
+ */
+double Frequency_Test(uint8_t *xDigest, uint32_t xLength)
+{
+    uint32_t nOnes = NumberOfOnes(xDigest, xLength);
+    
+    return ((double)nOnes / (xLength * 8));
+}
+
+/*
+ *  CHI SQUARE TEST:
+ *  Since we're dealing with binary data, the number of outcomes
+ *  is 2, the outcome we're observing is either the occurence of
+ *  bit 1 or the bit 0, which means the degrees of freedom = 2-1 = 1.
+ *  A Chi Square distribution with 1 degree of freedom with 95%
+ *  certainity has a critical value of  3.841. If the Chi Square
+ *  value obtained > 3.841, the data fails the statistical test for
+ *  randomness.
+ *  Reference: Handbook of Applied Cryptography, §5.4.4
+ */
+double ChiSquare_Test(uint8_t *xDigest, uint32_t xLength)
+{
+    uint32_t nOnes = NumberOfOnes(xDigest, xLength);
+    uint32_t nZeroes = (xLength * 8) - nOnes;
+
+    return (pow((abs(nZeroes - nOnes)), 2)) / (xLength*8);
+}
+
+/*
+ *  MONOBIT TEST:
+ *  The number of 1's and 0's are expected to be equal for a random
+ *  sequence. The Monobit test check if the P-value obtained is >= 0.01.
+ *  Reference: https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-22r1a.pdf
+ */
+double Monobit_Test(uint8_t *xDigest, uint32_t xLength)
+{
+    int32_t count = 0;
+    double sobs = 0.0, pVal = 0.0;
+    for (int i = 0; i < xLength; i++)
+    {
+        uint8_t value = xDigest[i];
+        for (int j = 0; j < 8; j++)
+        {
+            (value & 1) ? (count += 1) : (count -= 1);
+            value >>= 1;
+        }
+    }
+
+    sobs = ((double)abs(count) / (sqrt(xLength * 8)));
+    pVal = erfc(fabs(sobs) / sqrt(2));
+
+    return pVal;
+}
+
 int main(int argc, char** argv)
 {
     uint8_t digest[16];
@@ -229,5 +302,13 @@ int main(int argc, char** argv)
     PRINT_MD(digest);
     printf("\n");
 
+    double result_freqTest = Frequency_Test(digest, 16);
+    printf("Frequency_Test: %lf Status: %s\n", result_freqTest, ((result_freqTest > 0.40) && (result_freqTest < 0.60)) ? "Passed":"Failed");
+
+    double result_ChiSquareTest = ChiSquare_Test(digest, 16);
+    printf("ChiSquare_Test: %lf Status: %s\n", result_ChiSquareTest, (result_ChiSquareTest < 3.841) ? "Passed" : "Failed");
+
+    double result_MonobitTest = Monobit_Test(digest, 16);
+    printf("Monobit_Test: %lf Status: %s\n", result_MonobitTest, (result_MonobitTest >= 0.01) ? "Passed" : "Failed");
     return 0;
 }

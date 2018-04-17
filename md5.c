@@ -260,6 +260,26 @@ double Monobit_Test(uint8_t *xDigest, uint32_t xLength)
     return pVal;
 }
 
+uint32_t BitwiseDifference(uint8_t* xMD1, uint8_t* xMD2, uint32_t xLength)
+{
+    uint32_t count = 0;
+    for (int i = 0; i < xLength; i++)
+    {
+        printf("MD1[%d]=%02X MD2[%d]=%02X\n", i, xMD1[i], i, xMD2[i]);
+        uint8_t value1 = xMD1[i];
+        uint8_t value2 = xMD2[i];
+        for (int j = 0; j < 8; j++)
+        {
+            if ((value1 & 1) != (value2 & 1))
+            {
+                count++;
+            }
+            value1 >>= 1; value2 >>= 1;
+        }
+    }
+    return count;
+}
+
 int main(int argc, char** argv)
 {
     uint8_t digest[16];
@@ -310,5 +330,10 @@ int main(int argc, char** argv)
 
     double result_MonobitTest = Monobit_Test(digest, 16);
     printf("Monobit_Test: %lf Status: %s\n", result_MonobitTest, (result_MonobitTest >= 0.01) ? "Passed" : "Failed");
+
+    uint8_t MD1[] = { 0x0A, 0xCD, 0xC6, 0x9F, 0x58, 0xF5, 0x8B, 0x3C, 0x32, 0x5D, 0x7C, 0xC0, 0xCE, 0x8D, 0x9A, 0x12 }; /* "MD5 is secure." 0ACDC69F58F58B3C325D7CC0CE8D9A12*/
+    uint8_t MD2[] = { 0x62, 0x99, 0x3A, 0x17, 0xB0, 0x77, 0x8D, 0x50, 0x4E, 0xD4, 0xE9, 0xB9, 0xE3, 0x41, 0x78, 0x91 }; /* "MD5 is secure?" 62993A17B0778D504ED4E9B9E3417891*/
+    printf("The hashes differ by %d bits.\n", BitwiseDifference(MD1, MD2, 16));
+
     return 0;
 }

@@ -96,92 +96,104 @@ void MD5_chartoint(uint32_t* dst, uint8_t* src)
     *dst = ((src[3] & 0xff) << 24) | ((src[2] & 0xff) << 16) | ((src[1] & 0xff) << 8) | (src[0] & 0xff);
 }
 
-void MD5Transform(uint8_t* md, const uint8_t* xpPlaintext, uint32_t len)
+void MD5Transform(uint8_t* md, const uint8_t* xpPlaintext, uint32_t len, uint32_t xOpt)
 {
     uint32_t state[4];
     MD5_digesttostate(state, md);
 
-    for (int i = 0; i < len; i++)
+    for (uint32_t i = 0; i < len; i++)
     {
         uint32_t X[16];
         uint32_t a = state[0], b = state[1], c = state[2], d = state[3];
 
-        for (int j = 0; j < 16; j++)
+        for (uint32_t j = 0; j < 16; j++)
         {
             MD5_chartoint(&X[j], xpPlaintext + i * 64 + j * 4);
         }
-        /* Round 1 */
-        FF(a, b, c, d, X[0], 7, gLookupTable[0]);
-        FF(d, a, b, c, X[1], 12, gLookupTable[1]);
-        FF(c, d, a, b, X[2], 17, gLookupTable[2]);
-        FF(b, c, d, a, X[3], 22, gLookupTable[3]);
-        FF(a, b, c, d, X[4], 7, gLookupTable[4]);
-        FF(d, a, b, c, X[5], 12, gLookupTable[5]);
-        FF(c, d, a, b, X[6], 17, gLookupTable[6]);
-        FF(b, c, d, a, X[7], 22, gLookupTable[7]);
-        FF(a, b, c, d, X[8], 7, gLookupTable[8]);
-        FF(d, a, b, c, X[9], 12, gLookupTable[9]);
-        FF(c, d, a, b, X[10], 17, gLookupTable[10]);
-        FF(b, c, d, a, X[11], 22, gLookupTable[11]);
-        FF(a, b, c, d, X[12], 7, gLookupTable[12]);
-        FF(d, a, b, c, X[13], 12, gLookupTable[13]);
-        FF(c, d, a, b, X[14], 17, gLookupTable[14]);
-        FF(b, c, d, a, X[15], 22, gLookupTable[15]);
 
-        /* Round 2 */
-        GG(a, b, c, d, X[1], 5, gLookupTable[16]);
-        GG(d, a, b, c, X[6], 9, gLookupTable[17]);
-        GG(c, d, a, b, X[11], 14, gLookupTable[18]);
-        GG(b, c, d, a, X[0], 20, gLookupTable[19]);
-        GG(a, b, c, d, X[5], 5, gLookupTable[20]);
-        GG(d, a, b, c, X[10], 9, gLookupTable[21]);
-        GG(c, d, a, b, X[15], 14, gLookupTable[22]);
-        GG(b, c, d, a, X[4], 20, gLookupTable[23]);
-        GG(a, b, c, d, X[9], 5, gLookupTable[24]);
-        GG(d, a, b, c, X[14], 9, gLookupTable[25]);
-        GG(c, d, a, b, X[3], 14, gLookupTable[26]);
-        GG(b, c, d, a, X[8], 20, gLookupTable[27]);
-        GG(a, b, c, d, X[13], 5, gLookupTable[28]);
-        GG(d, a, b, c, X[2], 9, gLookupTable[29]);
-        GG(c, d, a, b, X[7], 14, gLookupTable[30]);
-        GG(b, c, d, a, X[12], 20, gLookupTable[31]);
+        /* Round 1 */
+        if (xOpt & 1)
+        {
+            FF(a, b, c, d, X[0], 7, gLookupTable[0]);
+            FF(d, a, b, c, X[1], 12, gLookupTable[1]);
+            FF(c, d, a, b, X[2], 17, gLookupTable[2]);
+            FF(b, c, d, a, X[3], 22, gLookupTable[3]);
+            FF(a, b, c, d, X[4], 7, gLookupTable[4]);
+            FF(d, a, b, c, X[5], 12, gLookupTable[5]);
+            FF(c, d, a, b, X[6], 17, gLookupTable[6]);
+            FF(b, c, d, a, X[7], 22, gLookupTable[7]);
+            FF(a, b, c, d, X[8], 7, gLookupTable[8]);
+            FF(d, a, b, c, X[9], 12, gLookupTable[9]);
+            FF(c, d, a, b, X[10], 17, gLookupTable[10]);
+            FF(b, c, d, a, X[11], 22, gLookupTable[11]);
+            FF(a, b, c, d, X[12], 7, gLookupTable[12]);
+            FF(d, a, b, c, X[13], 12, gLookupTable[13]);
+            FF(c, d, a, b, X[14], 17, gLookupTable[14]);
+            FF(b, c, d, a, X[15], 22, gLookupTable[15]);
+        }
+        
+       /* Round 2 */
+        if (xOpt & 2)
+        {
+            GG(a, b, c, d, X[1], 5, gLookupTable[16]);
+            GG(d, a, b, c, X[6], 9, gLookupTable[17]);
+            GG(c, d, a, b, X[11], 14, gLookupTable[18]);
+            GG(b, c, d, a, X[0], 20, gLookupTable[19]);
+            GG(a, b, c, d, X[5], 5, gLookupTable[20]);
+            GG(d, a, b, c, X[10], 9, gLookupTable[21]);
+            GG(c, d, a, b, X[15], 14, gLookupTable[22]);
+            GG(b, c, d, a, X[4], 20, gLookupTable[23]);
+            GG(a, b, c, d, X[9], 5, gLookupTable[24]);
+            GG(d, a, b, c, X[14], 9, gLookupTable[25]);
+            GG(c, d, a, b, X[3], 14, gLookupTable[26]);
+            GG(b, c, d, a, X[8], 20, gLookupTable[27]);
+            GG(a, b, c, d, X[13], 5, gLookupTable[28]);
+            GG(d, a, b, c, X[2], 9, gLookupTable[29]);
+            GG(c, d, a, b, X[7], 14, gLookupTable[30]);
+            GG(b, c, d, a, X[12], 20, gLookupTable[31]);
+        }
 
         /* Round 3 */
-        HH(a, b, c, d, X[5], 4, gLookupTable[32]);
-        HH(d, a, b, c, X[8], 11, gLookupTable[33]);
-        HH(c, d, a, b, X[11], 16, gLookupTable[34]);
-        HH(b, c, d, a, X[14], 23, gLookupTable[35]);
-        HH(a, b, c, d, X[1], 4, gLookupTable[36]);
-        HH(d, a, b, c, X[4], 11, gLookupTable[37]);
-        HH(c, d, a, b, X[7], 16, gLookupTable[38]);
-        HH(b, c, d, a, X[10], 23, gLookupTable[39]);
-        HH(a, b, c, d, X[13], 4, gLookupTable[40]);
-        HH(d, a, b, c, X[0], 11, gLookupTable[41]);
-        HH(c, d, a, b, X[3], 16, gLookupTable[42]);
-        HH(b, c, d, a, X[6], 23, gLookupTable[43]);
-        HH(a, b, c, d, X[9], 4, gLookupTable[44]);
-        HH(d, a, b, c, X[12], 11, gLookupTable[45]);
-        HH(c, d, a, b, X[15], 16, gLookupTable[46]);
-        HH(b, c, d, a, X[2], 23, gLookupTable[47]);
-
+        if (xOpt & 4)
+        {
+            HH(a, b, c, d, X[5], 4, gLookupTable[32]);
+            HH(d, a, b, c, X[8], 11, gLookupTable[33]);
+            HH(c, d, a, b, X[11], 16, gLookupTable[34]);
+            HH(b, c, d, a, X[14], 23, gLookupTable[35]);
+            HH(a, b, c, d, X[1], 4, gLookupTable[36]);
+            HH(d, a, b, c, X[4], 11, gLookupTable[37]);
+            HH(c, d, a, b, X[7], 16, gLookupTable[38]);
+            HH(b, c, d, a, X[10], 23, gLookupTable[39]);
+            HH(a, b, c, d, X[13], 4, gLookupTable[40]);
+            HH(d, a, b, c, X[0], 11, gLookupTable[41]);
+            HH(c, d, a, b, X[3], 16, gLookupTable[42]);
+            HH(b, c, d, a, X[6], 23, gLookupTable[43]);
+            HH(a, b, c, d, X[9], 4, gLookupTable[44]);
+            HH(d, a, b, c, X[12], 11, gLookupTable[45]);
+            HH(c, d, a, b, X[15], 16, gLookupTable[46]);
+            HH(b, c, d, a, X[2], 23, gLookupTable[47]);
+        }
         /* Round 4 */
-        II(a, b, c, d, X[0], 6, gLookupTable[48]);
-        II(d, a, b, c, X[7], 10, gLookupTable[49]);
-        II(c, d, a, b, X[14], 15, gLookupTable[50]);
-        II(b, c, d, a, X[5], 21, gLookupTable[51]);
-        II(a, b, c, d, X[12], 6, gLookupTable[52]);
-        II(d, a, b, c, X[3], 10, gLookupTable[53]);
-        II(c, d, a, b, X[10], 15, gLookupTable[54]);
-        II(b, c, d, a, X[1], 21, gLookupTable[55]);
-        II(a, b, c, d, X[8], 6, gLookupTable[56]);
-        II(d, a, b, c, X[15], 10, gLookupTable[57]);
-        II(c, d, a, b, X[6], 15, gLookupTable[58]);
-        II(b, c, d, a, X[13], 21, gLookupTable[59]);
-        II(a, b, c, d, X[4], 6, gLookupTable[60]);
-        II(d, a, b, c, X[11], 10, gLookupTable[61]);
-        II(c, d, a, b, X[2], 15, gLookupTable[62]);
-        II(b, c, d, a, X[9], 21, gLookupTable[63]);
-
+        if (xOpt & 8)
+        {
+            II(a, b, c, d, X[0], 6, gLookupTable[48]);
+            II(d, a, b, c, X[7], 10, gLookupTable[49]);
+            II(c, d, a, b, X[14], 15, gLookupTable[50]);
+            II(b, c, d, a, X[5], 21, gLookupTable[51]);
+            II(a, b, c, d, X[12], 6, gLookupTable[52]);
+            II(d, a, b, c, X[3], 10, gLookupTable[53]);
+            II(c, d, a, b, X[10], 15, gLookupTable[54]);
+            II(b, c, d, a, X[1], 21, gLookupTable[55]);
+            II(a, b, c, d, X[8], 6, gLookupTable[56]);
+            II(d, a, b, c, X[15], 10, gLookupTable[57]);
+            II(c, d, a, b, X[6], 15, gLookupTable[58]);
+            II(b, c, d, a, X[13], 21, gLookupTable[59]);
+            II(a, b, c, d, X[4], 6, gLookupTable[60]);
+            II(d, a, b, c, X[11], 10, gLookupTable[61]);
+            II(c, d, a, b, X[2], 15, gLookupTable[62]);
+            II(b, c, d, a, X[9], 21, gLookupTable[63]);
+        }
+        
         state[0] += a; state[1] += b; state[2] += c; state[3] += d;
     }
     MD5_statetodigest(md, state, 16);
@@ -265,7 +277,6 @@ uint32_t BitwiseDifference(uint8_t* xMD1, uint8_t* xMD2, uint32_t xLength)
     uint32_t count = 0;
     for (int i = 0; i < xLength; i++)
     {
-        printf("MD1[%d]=%02X MD2[%d]=%02X\n", i, xMD1[i], i, xMD2[i]);
         uint8_t value1 = xMD1[i];
         uint8_t value2 = xMD2[i];
         for (int j = 0; j < 8; j++)
@@ -280,26 +291,16 @@ uint32_t BitwiseDifference(uint8_t* xMD1, uint8_t* xMD2, uint32_t xLength)
     return count;
 }
 
-int main(int argc, char** argv)
+void MD5Sum(uint8_t* digest, uint8_t* messageString, uint32_t xOpt)
 {
-    uint8_t digest[16];
-    uint8_t* messageString;
-    if (1 < argc)
-    {
-        messageString = argv[1];
-    }
-    else
-    {
-        messageString = gPlaintext;
-    }
     uint32_t unpaddedLength = strlen(messageString);
     MD5CreateLookUpTable();
-    
+
     /*Initialize message digest*/
     memcpy(digest, MD5REGISTERS, sizeof(MD5REGISTERS));
 
     /* MD5Transform full blocks of message */
-    MD5Transform(digest, messageString, unpaddedLength / 64);
+    MD5Transform(digest, messageString, unpaddedLength / 64, xOpt);
 
     /* MD5Transform remaining bits */
     /* Create the Pad */
@@ -317,23 +318,56 @@ int main(int argc, char** argv)
 
     memcpy(paddedString + mod + nPadding, lenBuf, sizeof(uint64_t));
 
-    MD5Transform(digest, paddedString, (mod + nPadding + 8) / 64);
+    MD5Transform(digest, paddedString, (mod + nPadding + 8) / 64, xOpt);
+}
+
+void MD5_TestForStatisticalRandomness(uint8_t* digest)
+{
+    PRINT_MD(digest);
+
+    double result_freqTest = Frequency_Test(digest, 16);
+    printf("Frequency Test: %lf Status: %s\n", result_freqTest, ((result_freqTest > 0.40) && (result_freqTest < 0.60)) ? "Passed" : "Failed");
+
+    double result_ChiSquareTest = ChiSquare_Test(digest, 16);
+    printf("ChiSquare Test: %lf Status: %s\n", result_ChiSquareTest, (result_ChiSquareTest < 3.841) ? "Passed" : "Failed");
+
+    double result_MonobitTest = Monobit_Test(digest, 16);
+    printf("Monobit Test: %lf Status: %s\n", result_MonobitTest, (result_MonobitTest >= 0.01) ? "Passed" : "Failed");
+}
+
+void MD5_TestOptimizations(uint8_t* digest, uint8_t* messageString)
+{
+    for (uint32_t i = 0; i < 16; i++)
+    {
+        uint8_t digestOpt[16];
+        printf("---------------\n");
+        printf("Optimization %d\n", i);
+        printf("---------------\n");
+        MD5Sum(digestOpt, messageString, i);
+        printf("MD5[%s]:", messageString);
+        MD5_TestForStatisticalRandomness(digestOpt);
+        printf("MD and MDOpt[%d] differ by %d bits.\n", i, BitwiseDifference(digest, digestOpt, 16));
+        printf("\n");
+    }
+}
+
+int main(int argc, char** argv)
+{
+    uint8_t digest[16];
+    uint8_t* messageString;
+    if (1 < argc)
+    {
+        messageString = argv[1];
+    }
+    else
+    {
+        messageString = gPlaintext;
+    }
+    MD5Sum(digest, messageString, 15);
     printf("MD5[%s]:\n", messageString);
     PRINT_MD(digest);
     printf("\n");
 
-    double result_freqTest = Frequency_Test(digest, 16);
-    printf("Frequency_Test: %lf Status: %s\n", result_freqTest, ((result_freqTest > 0.40) && (result_freqTest < 0.60)) ? "Passed":"Failed");
-
-    double result_ChiSquareTest = ChiSquare_Test(digest, 16);
-    printf("ChiSquare_Test: %lf Status: %s\n", result_ChiSquareTest, (result_ChiSquareTest < 3.841) ? "Passed" : "Failed");
-
-    double result_MonobitTest = Monobit_Test(digest, 16);
-    printf("Monobit_Test: %lf Status: %s\n", result_MonobitTest, (result_MonobitTest >= 0.01) ? "Passed" : "Failed");
-
-    uint8_t MD1[] = { 0x0A, 0xCD, 0xC6, 0x9F, 0x58, 0xF5, 0x8B, 0x3C, 0x32, 0x5D, 0x7C, 0xC0, 0xCE, 0x8D, 0x9A, 0x12 }; /* "MD5 is secure." 0ACDC69F58F58B3C325D7CC0CE8D9A12*/
-    uint8_t MD2[] = { 0x62, 0x99, 0x3A, 0x17, 0xB0, 0x77, 0x8D, 0x50, 0x4E, 0xD4, 0xE9, 0xB9, 0xE3, 0x41, 0x78, 0x91 }; /* "MD5 is secure?" 62993A17B0778D504ED4E9B9E3417891*/
-    printf("The hashes differ by %d bits.\n", BitwiseDifference(MD1, MD2, 16));
-
+    MD5_TestOptimizations(digest, messageString);
     return 0;
 }

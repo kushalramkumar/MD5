@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#define MD5_NOMINAL_MODE 15
+
 #define SAFE_DELETE(x) do{\
     if(NULL != x){ free(x); x = NULL; }\
 }while(0)
@@ -277,15 +279,13 @@ uint32_t BitwiseDifference(uint8_t* xMD1, uint8_t* xMD2, uint32_t xLength)
     uint32_t count = 0;
     for (int i = 0; i < xLength; i++)
     {
-        uint8_t value1 = xMD1[i];
-        uint8_t value2 = xMD2[i];
+        uint8_t diff = xMD1[i] ^ xMD2[i];
         for (int j = 0; j < 8; j++)
         {
-            if ((value1 & 1) != (value2 & 1))
+            if ((diff >> j) & 1)
             {
                 count++;
             }
-            value1 >>= 1; value2 >>= 1;
         }
     }
     return count;
@@ -304,20 +304,19 @@ void MD5Sum(uint8_t* digest, uint8_t* messageString, uint32_t xOpt)
 
     /* MD5Transform remaining bits */
     /* Create the Pad */
-    uint8_t paddedString[128];
+    uint8_t paddedString[128] = { 0 };
     uint32_t mod = unpaddedLength % 64;
     memcpy(paddedString, messageString + (64 * (unpaddedLength / 64)), mod);
 
-    uint32_t nPadding = (mod > 64) ? (56 + (64 - mod)) : (56 - mod);
+    uint32_t nPadding = (mod > 56) ? (56 + (64 - mod)) : (56 - mod);
     memcpy(paddedString + mod, PADDING, nPadding);
 
     /* Append the length in *bits* */
     uint64_t len = strlen(messageString) * 8;
     uint8_t lenBuf[8];
     MD5_statetodigest(lenBuf, &len, 8);
-
     memcpy(paddedString + mod + nPadding, lenBuf, sizeof(uint64_t));
-
+    
     MD5Transform(digest, paddedString, (mod + nPadding + 8) / 64, xOpt);
 }
 
@@ -351,9 +350,49 @@ void MD5_TestOptimizations(uint8_t* digest, uint8_t* messageString)
     }
 }
 
+void MD5_TestAvalancheEffect(uint8_t* messageString, uint32_t length, uint32_t xOpt)
+{
+    uint8_t ref_digest[16] = { 0 };
+    double avgBitwiseDifference = 0.0;
+    uint32_t count = 0;
+    
+    uint8_t* msg = (uint8_t*)malloc(length);
+    memset(msg, 0, length);
+
+    MD5Sum(ref_digest, messageString, MD5_NOMINAL_MODE);
+
+    for (uint32_t i = 0; i < length; i++)
+    {
+        for (uint32_t j = 0; j < 8; j++)
+        {
+            uint8_t test_digest[16] = { 0 };
+            memcpy(msg, messageString, length);
+            msg[i] = msg[i] ^ (1 << j);
+            MD5Sum(test_digest, msg, xOpt);
+            avgBitwiseDifference = (double)BitwiseDifference(ref_digest, test_digest, 16)/128;
+            if (avgBitwiseDifference >= 0.50)
+            {
+                count++;
+            }
+            memset(msg, 0, length);
+        }
+    }
+
+    if (count >= ((length * 8) / 2))
+    {
+        printf("Avalanche Criterion PASSED for Opt %d.\n", xOpt);
+    }
+    else
+    {
+        printf("Avalanche Criterion FAILED for Opt %d, only %lf bits vary on average\n", xOpt, (double)count/(length*8));
+    }
+
+    free(msg);
+}
+
 int main(int argc, char** argv)
 {
-    uint8_t digest[16];
+    uint8_t digest[16] = { 0 };
     uint8_t* messageString;
     if (1 < argc)
     {
@@ -363,11 +402,25 @@ int main(int argc, char** argv)
     {
         messageString = gPlaintext;
     }
-    MD5Sum(digest, messageString, 15);
-    printf("MD5[%s]:\n", messageString);
+    MD5Sum(digest, messageString, MD5_NOMINAL_MODE);
+    printf("MD5[%s]: ", messageString);
     PRINT_MD(digest);
     printf("\n");
 
-    MD5_TestOptimizations(digest, messageString);
+    printf("--------------------------------\n");
+    printf("Tests for Statistical Randomness\n");
+    printf("--------------------------------\n");
+    MD5_TestForStatisticalRandomness(digest);
+    printf("\n");
+
+    printf("-----------------------------\n");
+    printf("Tests for Avalanche Criterion\n");
+    printf("-----------------------------\n");
+    for (uint32_t i = 1; i < 16; i++)
+    {
+        MD5_TestAvalancheEffect(messageString, strlen(messageString), i);
+    }
+    
+    //MD5_TestOptimizations(digest, messageString);
     return 0;
 }

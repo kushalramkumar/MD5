@@ -21,25 +21,25 @@
 #define FF(a,b,c,d,x,s,t) do{\
     a += F(b,c,d) + x + t;\
     a = ROTATE_LEFT(a,s);\
-    a += b;\
+    a+= b;\
 }while(0)
 
 #define GG(a,b,c,d,x,s,t) do{\
     a += G(b,c,d) + x + t;\
     a = ROTATE_LEFT(a,s);\
-    a += b;\
+    a+= b;\
 }while(0)
 
 #define HH(a,b,c,d,x,s,t) do{\
     a += H(b,c,d) + x + t;\
     a = ROTATE_LEFT(a,s);\
-    a += b;\
+    a+= b;\
 }while(0)
 
 #define II(a,b,c,d,x,s,t) do{\
     a += I(b,c,d) + x + t;\
     a = ROTATE_LEFT(a,s);\
-    a += b;\
+    a+= b;\
 }while(0)
 
 #define PRINT_MD(x) do{\
@@ -325,7 +325,7 @@ void MD5_TestForStatisticalRandomness(uint8_t* digest)
     PRINT_MD(digest);
 
     double result_freqTest = Frequency_Test(digest, 16);
-    printf("Frequency Test: %lf Status: %s\n", result_freqTest, ((result_freqTest > 0.40) && (result_freqTest < 0.60)) ? "Passed" : "Failed");
+    printf("Frequency Test: %lf Status: %s\n", result_freqTest, ((result_freqTest > 0.48) && (result_freqTest < 0.52)) ? "Passed" : "Failed");
 
     double result_ChiSquareTest = ChiSquare_Test(digest, 16);
     printf("ChiSquare Test: %lf Status: %s\n", result_ChiSquareTest, (result_ChiSquareTest < 3.841) ? "Passed" : "Failed");
@@ -334,8 +334,11 @@ void MD5_TestForStatisticalRandomness(uint8_t* digest)
     printf("Monobit Test: %lf Status: %s\n", result_MonobitTest, (result_MonobitTest >= 0.01) ? "Passed" : "Failed");
 }
 
-void MD5_TestOptimizations(uint8_t* digest, uint8_t* messageString)
+void MD5_TestSimplifications(uint8_t* messageString)
 {
+    uint8_t digest[16] = { 0 };
+    MD5Sum(digest, messageString, MD5_NOMINAL_MODE);
+
     for (uint32_t i = 0; i < 16; i++)
     {
         uint8_t digestOpt[16];
@@ -350,41 +353,50 @@ void MD5_TestOptimizations(uint8_t* digest, uint8_t* messageString)
     }
 }
 
-void MD5_TestAvalancheEffect(uint8_t* messageString, uint32_t length, uint32_t xOpt)
+typedef union
+{
+    uint32_t integerValue;
+    uint8_t charValue[2];
+}UAvalancheInput;
+
+void MD5_TestAvalancheEffect(uint32_t xOpt)
 {
     uint8_t ref_digest[16] = { 0 };
+    UAvalancheInput avalanche_input = { 0 };
+    uint32_t length = sizeof(avalanche_input.charValue);
     double avgBitwiseDifference = 0.0;
-    uint32_t count = 0;
+    double count = 0;
     
     uint8_t* msg = (uint8_t*)malloc(length);
     memset(msg, 0, length);
-
-    MD5Sum(ref_digest, messageString, MD5_NOMINAL_MODE);
-
-    for (uint32_t i = 0; i < length; i++)
+    double i = 0;
+    for (i = 0; i < pow(2,16); i++)
     {
-        for (uint32_t j = 0; j < 8; j++)
+        MD5Sum(ref_digest, avalanche_input.charValue, MD5_NOMINAL_MODE);
+
+        for (uint32_t j = 0; j < length; j++)
         {
-            uint8_t test_digest[16] = { 0 };
-            memcpy(msg, messageString, length);
-            msg[i] = msg[i] ^ (1 << j);
-            MD5Sum(test_digest, msg, xOpt);
-            avgBitwiseDifference = (double)BitwiseDifference(ref_digest, test_digest, 16)/128;
-            if (avgBitwiseDifference >= 0.50)
+            for (uint32_t k = 0; k < 8; k++)
             {
-                count++;
+                uint8_t test_digest[16] = { 0 };
+                memcpy(msg, avalanche_input.charValue, length);
+                msg[j] = msg[j] ^ (1 << k);
+                MD5Sum(test_digest, msg, xOpt);
+                count += (double)BitwiseDifference(ref_digest, test_digest, 16);
+                memset(msg, 0, length);
             }
-            memset(msg, 0, length);
         }
+        avalanche_input.integerValue++;
     }
 
-    if (count >= ((length * 8) / 2))
+    double avalanche_threshold = 128*16*pow(2,15);
+    if (count >= avalanche_threshold)
     {
         printf("Avalanche Criterion PASSED for Opt %d.\n", xOpt);
     }
     else
     {
-        printf("Avalanche Criterion FAILED for Opt %d, only %lf bits vary on average\n", xOpt, (double)count/(length*8));
+        printf("Avalanche Criterion FAILED for Opt %d, %lf percentage of bits vary on average\n", xOpt, ((double)count/(2*avalanche_threshold))*100);
     }
 
     free(msg);
@@ -416,11 +428,12 @@ int main(int argc, char** argv)
     printf("-----------------------------\n");
     printf("Tests for Avalanche Criterion\n");
     printf("-----------------------------\n");
+    
     for (uint32_t i = 1; i < 16; i++)
     {
-        MD5_TestAvalancheEffect(messageString, strlen(messageString), i);
+        MD5_TestAvalancheEffect(i);
     }
-    
-    //MD5_TestOptimizations(digest, messageString);
+
+    //MD5_TestSimplifications(messageString);
     return 0;
 }
